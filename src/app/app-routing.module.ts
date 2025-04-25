@@ -10,7 +10,11 @@ const routes: Routes = [
     path: '',
     redirectTo: 'home',
     pathMatch: 'full'
+  },  {
+    path: 'pomodoro-timer',
+    loadChildren: () => import('./pomodoro-timer/pomodoro-timer.module').then( m => m.PomodoroTimerPageModule)
   },
+
 ];
 
 @NgModule({
