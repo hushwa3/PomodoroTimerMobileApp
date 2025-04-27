@@ -8,6 +8,16 @@
   <div>
     <p>Current Time in Default Timezone: {{ currentTime }}</p>
   </div>
+
+  <ion-button expand="block" color="success" (click)="navigateToPomodoroTimer()">
+    <ion-icon name="timer-outline" slot="start"></ion-icon>
+    Open Pomodoro Timer
+  </ion-button>
+  
+  <ion-item-divider class="ion-margin-top ion-margin-bottom">
+    <ion-label>Notification Functions</ion-label>
+  </ion-item-divider>
+  
   <ion-button expand="block" (click)="checkPermissions()">Check Permissions</ion-button>
   <ion-button expand="block" (click)="requestPermissions()">Request Permissions</ion-button>
   <ion-button expand="block" (click)="createNotification()">Create Notification</ion-button>

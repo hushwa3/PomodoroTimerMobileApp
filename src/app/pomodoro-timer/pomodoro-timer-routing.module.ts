@@ -1,12 +1,12 @@
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
-import { PomodoroPage } from './pomodoro-timer.page';
+import { PomodoroTimerPage } from './pomodoro-timer.page';
 
 const routes: Routes = [
   {
     path: '',
-    component: PomodoroPage
+    component: PomodoroTimerPage
   }
 ];
 

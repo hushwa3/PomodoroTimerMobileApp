@@ -4,53 +4,74 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <div class="clock-container">
-    <h2>Current Time</h2>
-    <div class="current-time">{{ currentTime }}</div>
+<ion-content class="ion-padding ion-text-center">
+  <!-- Real-time clock display -->
+  <div class="current-time">
+    <h2>{{ currentTime | date:'HH:mm:ss' }}</h2>
   </div>
 
+  <!-- Timer display -->
   <div class="timer-container">
-    <div class="timer-display">
-      <span class="timer-text">{{ minutes }}:{{ seconds }}</span>
-      <div class="timer-label">
-        <span *ngIf="isRunning && !isBreak">Work Session</span>
-        <span *ngIf="isRunning && isBreak">Break Time</span>
-        <span *ngIf="!isRunning">Ready</span>
-      </div>
-    </div>
-
-    <div class="button-container">
-      <ion-button 
-        expand="block" 
-        size="large" 
-        color="success"
-        [disabled]="isRunning"
-        (click)="startPomodoroSession()">
-        Start Pomodoro
-      </ion-button>
-
-      <ion-button 
-        expand="block" 
-        size="large" 
-        color="danger"
-        [disabled]="!isRunning"
-        (click)="resetTimer()">
-        Reset
-      </ion-button>
+    <div class="timer" [ngClass]="{'break-mode': isBreak}">
+      <h1>{{ timerDisplay }}</h1>
+      <p *ngIf="timerRunning && !isBreak">Work Session</p>
+      <p *ngIf="timerRunning && isBreak">Break Time</p>
+      <ion-chip *ngIf="testMode" color="warning">
+        <ion-label>TEST MODE</ion-label>
+      </ion-chip>
     </div>
   </div>
 
-  <div class="info-container" *ngIf="!isRunning">
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>Pomodoro Technique</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <p>1. Work for 25 minutes</p>
-        <p>2. Take a 5-minute break</p>
-        <p>3. Repeat the cycle</p>
-      </ion-card-content>
-    </ion-card>
+  <!-- Controls -->
+  <div class="controls">
+    <ion-button 
+      *ngIf="!timerRunning" 
+      expand="block" 
+      color="success" 
+      (click)="startPomodoro()">
+      Start Pomodoro Cycle
+    </ion-button>
+    
+    <ion-button 
+      *ngIf="timerRunning" 
+      expand="block" 
+      color="danger" 
+      (click)="stopPomodoro()">
+      Stop
+    </ion-button>
+    
+    <ion-button 
+      *ngIf="timerRunning" 
+      expand="block" 
+      color="medium" 
+      (click)="resetPomodoro()">
+      Reset
+    </ion-button>
   </div>
+
+  <!-- Session counter -->
+  <div class="session-info">
+    <p>Sessions completed: {{ completedSessions }}</p>
+  </div>
+  
+  <!-- Test Controls -->
+  <ion-card class="test-controls">
+    <ion-card-header>
+      <ion-card-title>Developer Testing</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-button 
+        [color]="testMode ? 'success' : 'medium'" 
+        (click)="toggleTestMode()">
+        {{ testMode ? 'Test Mode: ON' : 'Test Mode: OFF' }}
+      </ion-button>
+      <p *ngIf="testMode">Work: 10 sec / Break: 5 sec</p>
+      
+      <ion-button 
+        color="tertiary" 
+        (click)="testNotification()">
+        Test Notification
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
 </ion-content>
