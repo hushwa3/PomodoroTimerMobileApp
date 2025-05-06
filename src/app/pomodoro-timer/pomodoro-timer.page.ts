@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Platform } from '@ionic/angular';
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { App } from '@capacitor/app';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -32,12 +32,40 @@ export class PomodoroTimerPage implements OnInit, OnDestroy {
   completedSessions = 0;
   testMode = false;
   
+  // Sound variables
+  workCompleteSound: HTMLAudioElement | null = null;
+  breakCompleteSound: HTMLAudioElement | null = null;
+  
   // Clock variables
   currentTime = new Date();
   clockInterval: any;
 
   constructor(private platform: Platform) {
     this.setupBackButtonHandler();
+    this.initSounds();
+  }
+
+  // Initialize sound objects
+  initSounds() {
+    try {
+      // Create audio elements for both notification types
+      this.workCompleteSound = new Audio();
+      this.breakCompleteSound = new Audio();
+      
+      // Use device notification sound (base64 encoded default beep sound)
+      const defaultSound = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAAFdgD///////////////////////////////////////////8AAAA8TEFNRTMuMTAwAc0AAAAAAAAAABSAJAaWQgAAQAAABXZDc4AlAAAAAAAAAAAAAAAAAAAA//vQZAAAAlAXs1NKGAAPAAABKAAAAT0Bk01MYEA8gAAEoAAAAQXer2trImJiYmJiYmJiYmJiYmLu7u7u7u7u7u7u7u7u7u7u7u///////////////////93d3d3d3d3d3d3d3d3d3d3d3f//////////////////99PT09PT09PT09PT09PT09PT0////////////8mJiYmJiYmJiYmJiYmJiYmJ///////////////+7u7u7u7u7u7u7u7u7u7u7u////////////93d3d3d3d3d3d3d3d3d3d3d3d3////////////9PT09PT09PT09PT09PT09PT0///////////yYmJiYmJiYmJiYmJiYmJiYmJiAABrRAAAAT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7UGTZgAKmLWU/aSAARkABheAAAAArwubT85kABLIAGH4AAAL5RTAwMVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+      
+      this.workCompleteSound.src = defaultSound;
+      this.breakCompleteSound.src = defaultSound;
+      
+      // Preload the sounds
+      this.workCompleteSound.load();
+      this.breakCompleteSound.load();
+      
+      console.log('Sound objects initialized');
+    } catch (error) {
+      console.error('Error initializing sounds:', error);
+    }
   }
 
   ngOnInit() {
@@ -77,6 +105,8 @@ export class PomodoroTimerPage implements OnInit, OnDestroy {
       // Set up notification listeners
       LocalNotifications.addListener('localNotificationReceived', (notification) => {
         console.log('Notification received:', notification);
+        // Play sound when notification is received
+        this.playSound();
       });
       
       LocalNotifications.addListener('localNotificationActionPerformed', (notification) => {
@@ -120,22 +150,26 @@ export class PomodoroTimerPage implements OnInit, OnDestroy {
   
   // Test notification directly
   async testNotification() {
-    await this.showNotification('Test Notification', 'This is a test notification');
+    const title = this.isBreak ? 'Break Complete' : 'Work Session Complete';
+    const body = this.isBreak ? 'Ready for another Pomodoro?' : 'Time for a break!';
+    await this.showNotification(title, body);
   }
 
+  // Stop now resets the timer to initial state
   stopPomodoro() {
-    if (this.timerInterval) {
-      clearInterval(this.timerInterval);
-      this.timerRunning = false;
-    }
+    // Call resetPomodoro to go back to initial state
+    this.resetPomodoro();
   }
 
   resetPomodoro() {
-    // Stop any running timer
-    this.stopPomodoro();
+    // Clear any running timer
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+    }
     
     // Reset to initial state
     this.isBreak = false;
+    this.timerRunning = false;
     
     // Use test durations if in test mode
     if (this.testMode) {
@@ -144,7 +178,6 @@ export class PomodoroTimerPage implements OnInit, OnDestroy {
       this.timeRemaining = this.WORK_DURATION;
     }
     
-    this.timerRunning = false;
     this.updateTimerDisplay();
   }
 
@@ -214,61 +247,132 @@ export class PomodoroTimerPage implements OnInit, OnDestroy {
     }
   }
 
+  // Play the appropriate sound based on current timer state
+  playSound() {
+    try {
+      // Determine which sound to play
+      const sound = this.isBreak ? this.breakCompleteSound : this.workCompleteSound;
+      
+      if (sound) {
+        // Reset the sound to the beginning
+        sound.currentTime = 0;
+        
+        // Try to play with user interaction context
+        const playPromise = sound.play();
+        
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('Sound played successfully');
+            })
+            .catch(error => {
+              console.error('Error playing sound:', error);
+              
+              // Fallback approach - create and play a new Audio element
+              this.playFallbackSound();
+            });
+        }
+      } else {
+        // If sound objects not initialized, use fallback
+        this.playFallbackSound();
+      }
+    } catch (error) {
+      console.error('Error in playSound:', error);
+      this.playFallbackSound();
+    }
+  }
+  
+  // Fallback sound method
+  playFallbackSound() {
+    try {
+      // Create a new audio context
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContext) {
+        const audioCtx = new AudioContext();
+        
+        // Create oscillator for a beep sound
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(830, audioCtx.currentTime); // Beep frequency
+        
+        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.5);
+        
+        console.log('Fallback sound played via Web Audio API');
+      } else {
+        // Last resort - try to play a short click sound
+        const tempAudio = new Audio('data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAAFdgD///////////////////////////////////////////8AAAA8TEFNRTMuMTAwAc0AAAAAAAAAABSAJAaWQgAAQAAABXZDc4AlAAAAAAAAAAAAAAAAAAAA//vQZAAAAlAXs1NKGAAPAAABKAAAAT0Bk01MYEA8gAAEoAAAAQXer2trImJiYmJiYmJiYmJiYmLu7u7u7u7u7u7u7u7u7u7u7u///////////////////93d3d3d3d3d3d3d3d3d3d3d3f//////////////////99PT09PT09PT09PT09PT09PT0////////////8mJiYmJiYmJiYmJiYmJiYmJ///////////////+7u7u7u7u7u7u7u7u7u7u7u////////////93d3d3d3d3d3d3d3d3d3d3d3d3////////////9PT09PT09PT09PT09PT09PT0///////////yYmJiYmJiYmJiYmJiYmJiYmJiAABrRAAAAT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7UGTZgAKmLWU/aSAARkABheAAAAArwubT85kABLIAGH4AAAL5RTAwMVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV');
+        tempAudio.play().catch(e => console.error('Final fallback sound failed:', e));
+      }
+    } catch (fallbackError) {
+      console.error('Fallback sound failed:', fallbackError);
+    }
+  }
+
   async showNotification(title: string, body: string) {
     try {
-      // Vibrate device
-      if (this.platform.is('capacitor')) {
-        // First do a heavy impact
-        await Haptics.impact({ style: ImpactStyle.Heavy });
-        
-        // Then add a vibration pattern for more emphasis
-        await Haptics.vibrate();
-      }
+      // Create notification ID - use timestamp for uniqueness
+      const notificationId = Math.floor(Math.random() * 10000) + 1;
       
-      // Play a sound effect
+      // --- 1. SOUND FEEDBACK ---
+      // Play sound directly - not waiting for notification
       this.playSound();
       
-      // Show notification with explicit sound
+      // --- 2. HAPTIC FEEDBACK ---
+      if (this.platform.is('capacitor')) {
+        try {
+          // Create a strong physical vibration pattern
+          await Haptics.impact({ style: ImpactStyle.Heavy });
+          
+          // Follow with a notification vibration pattern
+          await Haptics.notification({ type: NotificationType.Success });
+          
+          // Add a final distinct vibration
+          await Haptics.vibrate();
+        } catch (hapticError) {
+          console.error('Error with haptic feedback:', hapticError);
+        }
+      }
+      
+      // --- 3. NOTIFICATION API ---
+      // Schedule notification (may also trigger sound depending on system)
       await LocalNotifications.schedule({
         notifications: [
           {
             title: title,
             body: body,
-            id: Math.floor(Math.random() * 10000) + 1, // Random ID to avoid conflicts
+            id: notificationId,
             sound: "default",
             schedule: { at: new Date() },
-            extra: { data: "Pass data to your handler" }
+            // Add some custom data if needed
+            extra: { 
+              type: this.isBreak ? 'break-end' : 'work-end',
+              sessionCount: this.completedSessions 
+            }
           }
         ]
       });
       
-      // Also display an alert for immediate visibility
+      // --- 4. VISUAL FEEDBACK with native alert ---
       alert(`${title}\n${body}`);
       
       console.log('Notification sent:', title);
     } catch (error) {
       console.error('Error showing notification:', error);
-    }
-  }
-  
-  // Play a beep sound
-  playSound() {
-    try {
-      // Create audio element
-      const audio = new Audio();
-      audio.src = 'assets/sounds/notification.mp3'; // Make sure this file exists in your assets folder
-      audio.load();
-      audio.play();
-    } catch (e) {
-      console.error('Error playing sound:', e);
       
-      // Fallback to system beep
-      try {
-        const fallbackAudio = new Audio('data:audio/wav;base64,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');
-        fallbackAudio.play();
-      } catch (fallbackError) {
-        console.error('Error playing fallback sound:', fallbackError);
-      }
+      // Fallback alert if the notification fails
+      alert(`${title}\n${body}`);
+      
+      // Still try to play sound even if notification fails
+      this.playSound();
     }
   }
 }

@@ -22,6 +22,11 @@
     </div>
   </div>
 
+  <!-- Session counter -->
+  <div class="session-info">
+    <p>Sessions completed: {{ completedSessions }}</p>
+  </div>
+
   <!-- Controls -->
   <div class="controls">
     <ion-button 
@@ -29,6 +34,7 @@
       expand="block" 
       color="success" 
       (click)="startPomodoro()">
+      <ion-icon name="play" slot="start"></ion-icon>
       Start Pomodoro Cycle
     </ion-button>
     
@@ -37,21 +43,9 @@
       expand="block" 
       color="danger" 
       (click)="stopPomodoro()">
-      Stop
+      <ion-icon name="stop" slot="start"></ion-icon>
+      Stop & Reset
     </ion-button>
-    
-    <ion-button 
-      *ngIf="timerRunning" 
-      expand="block" 
-      color="medium" 
-      (click)="resetPomodoro()">
-      Reset
-    </ion-button>
-  </div>
-
-  <!-- Session counter -->
-  <div class="session-info">
-    <p>Sessions completed: {{ completedSessions }}</p>
   </div>
   
   <!-- Test Controls -->
@@ -74,4 +68,7 @@
       </ion-button>
     </ion-card-content>
   </ion-card>
+
+  <!-- Notification indicator (invisible) -->
+  <div id="notification-container"></div>
 </ion-content>
